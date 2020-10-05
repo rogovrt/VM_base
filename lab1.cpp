@@ -2,6 +2,7 @@
 #include <cmath>
 #include <vector>
 #include <algorithm>
+#include <utility>
 
 void print(const std::string& s, const double& v) {
     std::cout << s << " = " << v << std::endl;
@@ -50,7 +51,7 @@ long double result(const std::vector <long double>& c, long double x) { //result
     return res;
 }
 
-std::vector <long double> derivative(const std::vector <long double>& c) {
+std::vector <long double> derivative(const std::vector <long double>& c) { //derivative of polynomial function
     std::vector <long double> a;
     int n = c.size();
     long double k;
@@ -61,7 +62,7 @@ std::vector <long double> derivative(const std::vector <long double>& c) {
     return a;
 }
 
-int delta(const std::vector <long double>& c, long double a, long double b) {
+int delta(const std::vector <long double>& c, long double a, long double b) { //using theoren budan-furie
     std::vector <long double> f_a;
     std::vector <long double> f_b;
     f_a.push_back(result(c,a));
@@ -73,6 +74,39 @@ int delta(const std::vector <long double>& c, long double a, long double b) {
         f_b.push_back(result(k, b));
     }
     return quantity_of_sign_change(f_a) - quantity_of_sign_change(f_b);
+}
+
+
+std::pair <long double, long double> localization(const std::vector <long double>& c, long double a, long double b) {
+    long double r = fabsl(b - a);
+    std::pair <long double, long double> res;
+    while (r > .0001) {
+        if (delta(c, a + r/2, b) == 1)
+            a = a + r / 2;
+        else
+            b = b - r / 2;
+        r = fabsl(b - a);
+    }
+    res = std::make_pair(a, b);
+    return res;
+}
+
+long double find_root(const std::vector <long double>& c, std::pair <long double, long double> segm) {
+    long double a = segm.first;
+    long double b = segm.second;
+    std::vector <long double> der1 = derivative(c);
+    std::vector <long double> der2 = derivative(der1);
+
+    long double x0 = a + fabsl(b - a) / 2;
+    if (result(c, x0) * result(der2, x0) < 0)
+        return 0;
+    long double k = result(der1, a) / (2 * result(der1, a));
+    long double x1 = x0 - result(c, x0)/ result(der1, x0);
+    while ((k * pow(x1 - x0, 2)) > .0000001) {
+        x0 = x1;
+        x1 = x0 - result(c, x0)/ result(der1, x0);
+    }
+    return x1;
 }
 
 int main() {
@@ -108,15 +142,7 @@ int main() {
     long double coef5 = - pow(nu, 2);
     long double coef6 = 2  * nu * (mu + nu);
     long double coef7 = - pow((mu + nu), 2);
-    /*
-    std::cout << coef1 << " * Z^(" << 2*n << ") ";
-    std::cout << coef2 << " * Z^(" << n + 2 << ") +";
-    std::cout << coef3 << " * Z^(" << n + 1 << ") ";
-    std::cout << coef4 << " * Z^(" << n << ") ";
-    std::cout << coef5 << " * Z^(2) +";
-    std::cout << coef6 << " * Z ";
-    std::cout << coef7 << " + 1 = 0" << std::endl;
-    */
+
     std::vector <long double> coefs {coef1, 0, 0, 0, 0, coef2, coef3, coef4, 0, 0, 0, 0, coef5, coef6, coef7 + 1};
     print_equation(coefs);
 
@@ -130,21 +156,24 @@ int main() {
 
     int q = quantity_of_sign_change(coefs); // quantity of positive solutions
     std::cout << "quantity of positive solutions = " << q << std::endl;
-/*
-    std::cout << result(coefs, 1.2);
-    std::vector <long double> d = derivative(coefs);
-    print_equation(d);
-    std::cout << result(d, 1.2);
-*/
 
-    std::cout << delta(coefs, st, fin) << std::endl;
-    std::cout << delta(coefs, st, 1.5) << std::endl;
-    std::cout << delta(coefs, st, .9) << std::endl;
     std::cout << delta(coefs, .9, 1.) << std::endl; //root!
-    std::cout << delta(coefs, st, .8) << std::endl;
+    std::pair <long double, long double> seg1 = localization(coefs, .9, 1.);
+    std::cout << seg1.first << "  " << seg1.second << std::endl;
+    long double root1 = find_root(coefs, seg1);
+    std::cout << root1 << std::endl;
+
     std::cout << delta(coefs, .8, .9) << std::endl; //root!
-    std::cout << delta(coefs, st, .3) << std::endl; //root!
-    std::cout << delta(coefs, st, .23) << std::endl; //root!
+    std::pair <long double, long double> seg2 = localization(coefs, .8, .9);
+    std::cout << seg2.first << "  " << seg2.second << std::endl;
+    long double root2 = find_root(coefs, seg2);
+    std::cout << root2 << std::endl;
+
+    std::cout << delta(coefs, .2, .3) << std::endl; //root!
+    std::pair <long double, long double> seg3 = localization(coefs, .2, .3);
+    std::cout << seg3.first << "  " << seg3.second << std::endl;
+    long double root3 = find_root(coefs, seg3);
+    std::cout << root3 << std::endl;
 
     return 0;
 }
