@@ -4,16 +4,6 @@
 #include <algorithm>
 #include <utility>
 
-void print(const std::string& s, const double& v) {
-    std::cout << s << " = " << v << std::endl;
-}
-
-void print_vector(const std::vector <long double>& v) {
-    for (int i =0 ; i < v.size(); ++i)
-        std::cout << v[i] << " ";
-    std::cout << std::endl;
-}
-
 void print_equation(const std::vector <long double>& c) {
     int n = c.size();
     int j = 0;
@@ -27,7 +17,6 @@ void print_equation(const std::vector <long double>& c) {
         }
         ++j;
     }
-
 }
 
 int quantity_of_sign_change(const std::vector <long double>& c) {
@@ -80,7 +69,7 @@ int delta(const std::vector <long double>& c, long double a, long double b) { //
 std::pair <long double, long double> localization(const std::vector <long double>& c, long double a, long double b) {
     long double r = fabsl(b - a);
     std::pair <long double, long double> res;
-    while (r > .0001) {
+    while (r > .000001) {
         if (delta(c, a + r/2, b) == 1)
             a = a + r / 2;
         else
@@ -91,16 +80,7 @@ std::pair <long double, long double> localization(const std::vector <long double
     return res;
 }
 
-std::vector<std::pair <long double, long double>> localization_of_all(const std::vector <long double>& c, long double a, long double b) {
-	//std::vector <long double> points;
-	long double r = fabsl(b - a);
-	while (((delta(c, a, a + r / 2) != 1) && (delta(c, a + r / 2, b) != 0)) || ((delta(c, a, a + r / 2) != 0) && (delta(c, a + r / 2, b) != 1))) {
-		b = b - r / 2;
-		r = fabsl(b - a);
-	}
-}
-
-long double find_root(const std::vector <long double>& c, std::pair <long double, long double> segm) {
+long double find_root_newton(const std::vector <long double>& c, std::pair <long double, long double> segm) {
     long double a = segm.first;
     long double b = segm.second;
     std::vector <long double> der1 = derivative(c);
@@ -118,6 +98,39 @@ long double find_root(const std::vector <long double>& c, std::pair <long double
     return x1;
 }
 
+long double find_root(const std::vector <long double>& c, std::pair <long double, long double> segm) {
+    long double a = segm.first;
+    long double b = segm.second;
+    long double cd;
+    if (result(c, a) * result(c, b) >= 0) std::cout << "problem!" << std::endl;
+    while (b - a > .000000001) {
+        cd = (b + a) / 2;
+        if (result(c, a) * result(c, cd) < 0) b = cd;
+        else a = cd;
+    }
+    return (b + a) / 2;
+}
+
+void roots(const std::vector <long double>& c, long double a, long double b, std::vector<long double>& sol) {
+    long double r = fabsl(b - a);
+    long double q;
+        if (delta(c, a, a + r / 2) == 1) {
+            q = find_root(c, localization(c, a, a + r / 2));
+            sol.push_back(q);
+        }
+        if ((delta(c, a, a + r / 2) > 1) && (a != a + r/2)) {
+            roots(c, a, a + r /4, sol);
+            roots(c, a + r / 4, a + r / 2, sol);
+        }
+        if (delta(c, a + r / 2, b) == 1) {
+            q = find_root(c, localization(c, a + r / 2, b));
+            sol.push_back(q);
+        }
+        if ((delta(c, a + r / 2, b) > 1) && (a != a + r/2)) {
+            roots(c, a + r / 2, a + 3 * r /4, sol);
+            roots(c, a + 3 * r / 4, b, sol);
+        }
+}
 int main() {
     long double g0 = 5./3;
     long double rho0 = 1.694 * pow(10., -4.); //gr/cm3
@@ -137,30 +150,21 @@ int main() {
     //double z = pow(p1 / p3, 1/n);
 
     std::cout.setf(std::ios::fixed);
-    std::cout.precision(8);/*
-    print("alpha0", a0);
-    print("n", n);
-    print("mu", mu);
-    print("nu", nu);
-    print("x", x);
-*/
+    std::cout.precision(8);
+
     long double coef1 = pow(x, 2);
-    std::cout << coef1 << std::endl;
     long double coef2 = - a0 * pow(nu, 2) * x;
     long double coef3 = 2 * a0 * nu * (mu + nu) * x;
     long double coef4 = - (2 + pow((nu + mu), 2) * a0) * x;
     long double coef5 = - pow(nu, 2);
-    long double coef6 = 2  * nu * (mu + nu);
+    long double coef6 = 2  * nu * (nu + mu);
     long double coef7 = - pow((mu + nu), 2);
-
 
     std::vector <long double> coefs {coef1, 0, 0, 0, 0, coef2, coef3, coef4, 0, 0, 0, 0, coef5, coef6, coef7 + 1};
     print_equation(coefs);
 
-    long double b = *std::max_element(coefs.begin(), coefs.end() - 2);
+    long double b = *std::max_element(coefs.begin(), coefs.end() - 2); //
     long double a = *std::max_element(coefs.begin() + 1, coefs.end() - 1);
-//    std::cout << b << " " << fabsl(*(coefs.end() - 1)) << std::endl;
-//    std::cout << a << " " << fabsl(*(coefs.begin())) << std::endl;
     long double st = fabsl(*(coefs.end() - 1)) / (fabsl(*(coefs.end() - 1)) + b);
     long double fin = 1 + a / fabsl(*(coefs.begin()));
     std::cout << "solution locates from " << st << " to " << fin << std::endl;
@@ -168,23 +172,11 @@ int main() {
     int q = quantity_of_sign_change(coefs); // quantity of positive solutions
     std::cout << "quantity of positive solutions = " << q << std::endl;
 
-    std::cout << delta(coefs, .9, 1.) << std::endl; //root!
-    std::pair <long double, long double> seg1 = localization(coefs, .9, 1.);
-    std::cout << seg1.first << "  " << seg1.second << std::endl;
-    long double root1 = find_root(coefs, seg1);
-    std::cout << root1 << std::endl;
+    std::vector <long double> r;
+    roots(coefs, st, fin, r);
 
-    std::cout << delta(coefs, .8, .9) << std::endl; //root!
-    std::pair <long double, long double> seg2 = localization(coefs, .8, .9);
-    std::cout << seg2.first << "  " << seg2.second << std::endl;
-    long double root2 = find_root(coefs, seg2);
-    std::cout << root2 << std::endl;
-
-    std::cout << delta(coefs, .2, .3) << std::endl; //root!
-    std::pair <long double, long double> seg3 = localization(coefs, .2, .3);
-    std::cout << seg3.first << "  " << seg3.second << std::endl;
-    long double root3 = find_root(coefs, seg3);
-    std::cout << root3 << std::endl;
+    for (auto it = r.begin(); it < r.end(); ++it)
+       std::cout << *it << std::endl;
 
     return 0;
 }
