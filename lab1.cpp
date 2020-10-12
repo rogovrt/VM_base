@@ -118,7 +118,7 @@ void roots(const std::vector <long double>& c, long double a, long double b, std
             q = find_root(c, localization(c, a, a + r / 2));
             sol.push_back(q);
         }
-        if ((delta(c, a, a + r / 2) > 1) && (a != a + r/2)) {
+        if ((delta(c, a, a + r / 2) > 1) && (r/2 > 0.000000001)) {
             roots(c, a, a + r /4, sol);
             roots(c, a + r / 4, a + r / 2, sol);
         }
@@ -126,11 +126,12 @@ void roots(const std::vector <long double>& c, long double a, long double b, std
             q = find_root(c, localization(c, a + r / 2, b));
             sol.push_back(q);
         }
-        if ((delta(c, a + r / 2, b) > 1) && (a != a + r/2)) {
+        if ((delta(c, a + r / 2, b) > 1) && (b - a - r / 2 > 0.000000001)) {
             roots(c, a + r / 2, a + 3 * r /4, sol);
             roots(c, a + 3 * r / 4, b, sol);
         }
 }
+
 int main() {
     long double g0 = 5./3;
     long double rho0 = 1.694 * pow(10., -4.); //gr/cm3
@@ -175,8 +176,20 @@ int main() {
     std::vector <long double> r;
     roots(coefs, st, fin, r);
 
+    std::cout << "roots : \n";
     for (auto it = r.begin(); it < r.end(); ++it)
        std::cout << *it << std::endl;
+
+    long double u1;
+    long double d;
+    long double z;
+    std::cout << "speeds : \n";
+    for (auto it = r.begin(); it < r.end(); ++it) {
+        z = *it;
+        u1 = u3 + 2 * c3 / (g3 - 1) - 2 * c3 * z / (g3 - 1);
+        d = u0 - (pow(z, n) * p3 - p0) / (rho0 * (u0 - u1));
+        std::cout << d << std::endl;
+    }
 
     return 0;
 }
