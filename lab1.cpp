@@ -91,6 +91,15 @@ std::pair <long double, long double> localization(const std::vector <long double
     return res;
 }
 
+std::vector<std::pair <long double, long double>> localization_of_all(const std::vector <long double>& c, long double a, long double b) {
+	//std::vector <long double> points;
+	long double r = fabsl(b - a);
+	while (((delta(c, a, a + r / 2) != 1) && (delta(c, a + r / 2, b) != 0)) || ((delta(c, a, a + r / 2) != 0) && (delta(c, a + r / 2, b) != 1))) {
+		b = b - r / 2;
+		r = fabsl(b - a);
+	}
+}
+
 long double find_root(const std::vector <long double>& c, std::pair <long double, long double> segm) {
     long double a = segm.first;
     long double b = segm.second;
@@ -100,9 +109,9 @@ long double find_root(const std::vector <long double>& c, std::pair <long double
     long double x0 = a + fabsl(b - a) / 2;
     if (result(c, x0) * result(der2, x0) < 0)
         return 0;
-    long double k = result(der1, a) / (2 * result(der1, a));
+    long double k = result(der2, a) / (2 * result(der1, a));
     long double x1 = x0 - result(c, x0)/ result(der1, x0);
-    while ((k * pow(x1 - x0, 2)) > .0000001) {
+    while ((k * pow(x1 - x0, 2)) > .000000001) {
         x0 = x1;
         x1 = x0 - result(c, x0)/ result(der1, x0);
     }
@@ -116,8 +125,8 @@ int main() {
     long double u0 = 0.;
     long double g3 = 7./5;
     long double c3 = 3.6537 * pow(10., 4.); //cm/c
-    long double p3 = 1.6738 * pow(10., 6.); //din/cm2
-    long double u3 = 0.;
+    long double p3 = 1.6768 * pow(10., 6.); //din/cm2
+    long double u3 = 0;
 
     long double rho3 = g3  * p3 / pow(c3, 2.);
     long double a0 = (g0 + 1)/(g0 - 1);
@@ -136,12 +145,14 @@ int main() {
     print("x", x);
 */
     long double coef1 = pow(x, 2);
+    std::cout << coef1 << std::endl;
     long double coef2 = - a0 * pow(nu, 2) * x;
     long double coef3 = 2 * a0 * nu * (mu + nu) * x;
     long double coef4 = - (2 + pow((nu + mu), 2) * a0) * x;
     long double coef5 = - pow(nu, 2);
     long double coef6 = 2  * nu * (mu + nu);
     long double coef7 = - pow((mu + nu), 2);
+
 
     std::vector <long double> coefs {coef1, 0, 0, 0, 0, coef2, coef3, coef4, 0, 0, 0, 0, coef5, coef6, coef7 + 1};
     print_equation(coefs);
