@@ -64,13 +64,30 @@ long double findDelta(std::array<long double, 11>& y, const std::array<long doub
 }
 
 void statPrecise(std::array<long double, 11>& u) {
+	long double ll = sqrt(ql/kl);
+	long double lr = sqrt(qr/kr);
+	long double nl = fl/ql;
+	long double nr = fr/qr;
+	long double A11 = exp(-ll * x0) - exp(ll * x0);
+	long double A12 = exp(lr * (2 - x0)) - exp(lr * x0);
+	long double A21 = kl * ll * (exp(ll*x0) + exp(-ll*x0));
+	long double A22 = kr*lr*(exp(lr*(2-x0)) + exp(lr*x0));
+	long double B1 = nr - nl + (nl - u0)*exp(ll*x0) - (nr - u1) * exp(lr * (1 - x0));
+	long double B2 = kl * ll * (u0 - nl) * exp(ll * x0) + kr * lr * (u1 - nr) * exp(lr * (1 - x0));
+	long double C1 = (((u0 - nl) * A11 - B1) * A22 - ((u0 - nl) * A21 - B2) * A12) / (A11 * A22 - A12 * A21);
+	long double C2 = (B1*A22 - B2*A12) / (A11*A22 - A12*A21);
+	long double C3 = (B2*A11 - B1*A21) / (A11*A22 - A12*A21);
+	long double C4 = (u1 - nr)*exp(lr) - C3*exp(2*lr);
+	
 	long double x  = 0.;
-	long double C2 = -exp(2.) / (exp(2.)-1);
-	long double C1 = 1. / (exp(2.)-1);
-	for (int i = 0; i < 11; ++i) {
-		x = i * .1;
-		u[i] = C1*exp(x) + C2*exp(-x) + 1;
-	}
+        for (int i = 0; i < 11; ++i) {
+                x = i * .1;
+		if (x < x0)
+                	u[i] = C1*exp(ll*x) + C2*exp(-ll*x) + nl;
+		else
+			u[i] = C3*exp(lr*x) + C4*exp(-lr*x) + nr;
+        }
+
 }
 
 template <typename T>
@@ -140,7 +157,7 @@ void dinProgonka(int numberOfKnots, std::vector<long double>& grid, std::array<l
         std::vector<long double> arr(numberOfKnots - beta - 2);
         std::vector<long double> brr(numberOfKnots - beta - 2);
 	all[0] = -al[0]/bl[0];
-	bll[0] = dl[0] - (cl[0]*u0) / bl[0];
+	bll[0] = (dl[0] - cl[0]*u0) / bl[0];
 	for (int i = 1; i < al.size(); ++i) {
 		all[i] = -al[i] / (bl[i] + cl[i]*all[i-1]);
 		bll[i] = (dl[i] - cl[i]*bll[i-1]) / (bl[i] + cl[i]*all[i-1]);
@@ -149,11 +166,11 @@ void dinProgonka(int numberOfKnots, std::vector<long double>& grid, std::array<l
 	brr[ar.size()-1] = (dr[ar.size()-1] - cr[ar.size()-1]*u1) / br[ar.size()-1];
 	for (int i = ar.size() - 2; i > -1; --i) {
 		arr[i] = -cr[i] / (br[i] + ar[i]*arr[i+1]);
-		brr[i] = (dl[i] - ar[i]*brr[i+1]) / (br[i] + ar[i]*arr[i+1]);
+		brr[i] = (dr[i] - ar[i]*brr[i+1]) / (br[i] + ar[i]*arr[i+1]);
 	}
 
 
-        long double temp = (k(grid[alpha]) * bll[bll.size()-1] + k(grid[beta])  * brr[0]) / (k(grid[alpha]) * (1 - all[bll.size()-1]) + k(grid[beta]) * (1 - ar[0]));
+        long double temp = (k(grid[alpha]) * bll[bll.size()-1] + k(grid[beta])  * brr[0]) / (k(grid[alpha]) * (1 - all[bll.size()-1]) + k(grid[beta]) * (1 - arr[0]));
         u_[alpha] = temp;       u_[beta] = temp;
         for (int i = alpha - 1; i > 0; --i)
                u_[i] = all[i-1]*u_[i+1] + bll[i-1];
@@ -181,15 +198,15 @@ void statProgonka(int numberOfKnots, std::vector<long double>& grid, std::array<
         std::vector<long double> br(numberOfKnots - beta - 2);
         std::vector<long double> cr(numberOfKnots - beta - 2);
         std::vector<long double> dr(numberOfKnots - beta - 2);
-        dinLeftCoeffs(al, bl, cl, dl, grid);
-        dinRightCoeffs(ar, br, cr, dr, grid, beta);
+        statLeftCoeffs(al, bl, cl, dl, grid);
+        statRightCoeffs(ar, br, cr, dr, grid, beta);
 
         std::vector<long double> all(alpha - 1);
         std::vector<long double> bll(alpha - 1);
         std::vector<long double> arr(numberOfKnots - beta - 2);
         std::vector<long double> brr(numberOfKnots - beta - 2);
         all[0] = -al[0]/bl[0];
-        bll[0] = dl[0] - (cl[0]*u0) / bl[0];
+        bll[0] = (dl[0] - cl[0]*u0) / bl[0];
         for (int i = 1; i < al.size(); ++i) {
                 all[i] = -al[i] / (bl[i] + cl[i]*all[i-1]);
                 bll[i] = (dl[i] - cl[i]*bll[i-1]) / (bl[i] + cl[i]*all[i-1]);
@@ -198,11 +215,11 @@ void statProgonka(int numberOfKnots, std::vector<long double>& grid, std::array<
         brr[ar.size()-1] = (dr[ar.size()-1] - cr[ar.size()-1]*u1) / br[ar.size()-1];
         for (int i = ar.size() - 2; i > -1; --i) {
                 arr[i] = -cr[i] / (br[i] + ar[i]*arr[i+1]);
-                brr[i] = (dl[i] - ar[i]*brr[i+1]) / (br[i] + ar[i]*arr[i+1]);
+                brr[i] = (dr[i] - ar[i]*brr[i+1]) / (br[i] + ar[i]*arr[i+1]);
         }
 
 	
-        long double temp = (kl * bll[bll.size()-1] + kr  * brr[0]) / (kl * (1 - all[bll.size()-1]) + kr * (1 - ar[0]));
+        long double temp = (kl * bll[bll.size()-1] + kr  * brr[0]) / (kl * (1 - all[bll.size()-1]) + kr * (1 - arr[0]));
         u_[alpha] = temp;       u_[beta] = temp;
         for (int i = alpha - 1; i > 0; --i)
                u_[i] = all[i-1]*u_[i+1] + bll[i-1];
@@ -227,11 +244,11 @@ void dinSolve(std::array<long double, 11>& u, std::vector<long double>& grid) {
 	fout << std::fixed << std::scientific << std::setprecision(4) << findDelta(u, u1) << std::endl;
         int k = 1;
         while (fabsl(findDelta(u, u1) > .0001)) {
-        //while (n < 5000) {
+        //while (n < 50000) {
 		n = n1;
 		u = u1;
                 n1 = (n1 - 1)*2 + 1;
-                statProgonka(n1, grid, u1);
+                dinProgonka(n1, grid, u1);
 		fout << n << "	" << std::scientific << std::setprecision(4) << findDelta(u, u1) << std::endl;
         }
 	fout << std::endl;
@@ -247,8 +264,8 @@ void statSolve(std::array<long double, 11>& u, std::vector<long double>& grid) {
 	fout << n << "	";
 	fout << std::fixed << std::scientific << std::setprecision(4) << findDelta(u, u_pr) << std::endl;
 	int k = 1;
-	//while (fabsl(findDelta(u, u_pr) > .0001)) {
-	while (n < 5000) {
+	while (fabsl(findDelta(u, u_pr) > .0001)) {
+	//while (n < 50000) {
 		n = (n - 1)*2 + 1;
 		statProgonka(n, grid, u);
 		fout << n << "	" << std::scientific << std::setprecision(4) << findDelta(u, u_pr) << std::endl;
