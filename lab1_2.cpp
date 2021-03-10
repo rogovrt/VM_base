@@ -17,6 +17,8 @@ void preciseSolution(std::array<long double, 11>& y1_pr, std::array<long double,
 	long double B = initCondition(1, 0);
 	long double C1 = A / 10 - B/ 4;
 	long double C2 = A / 10 + B / 4;
+	std::cout << A << "; " << B << std::endl;
+	std::cout << C1 << " ; " << C2 << std::endl;
 	long double x = 0.;
 	long double step = .1;
 	for (int i = 0; i < 11; ++i) {
@@ -74,22 +76,23 @@ long double findDelta(std::array<long double, 11>& y, const std::array<long doub
 }
 
 template <typename T>
-void outputGenerator(T& y1, T& y1_pr, T& y2, T& y2_pr) {
-	std::ofstream fout("output1.txt");
+void outputGenerator(T& y1, T& y1_pr, T& y2, T& y2_pr, int numberOfKnots) {
+	std::ofstream fout("output_final_res.txt");
   	//fout.setf(std::setw(10));
     	//fout.left();
-	fout << "A = 5; B = 2" << std::endl;
+	fout << "Number of knots = " << numberOfKnots << std::endl;
+	fout << "A = -5*10^(-15); B = 2*10^(-15)" << std::endl;
 	for (int i = 0; i < 11; ++i) {
 		fout << i + 1 << "	";
 		//fout << std::setw(10);
 		fout << std::fixed << std::setprecision(2) << .1 * i << "	";
 		//fout << std::setw(10);
-		fout << std::fixed << std::setprecision(7) << y1[i] << "	"; 
-                fout << std::fixed << std::setprecision(7) << y1_pr[i] << "	";
-		fout << std::fixed << std::setprecision(7) << fabsl(y1[i] - y1_pr[i]) << "	";
-               	fout << std::fixed << std::setprecision(7) << y2[i] << "	";
-                fout << std::fixed << std::setprecision(7) << y2_pr[i] << "	";
-                fout << std::fixed << std::setprecision(7) << fabsl(y2[i] - y2_pr[i]);
+		fout << std::fixed << std::scientific << std::setprecision(5) << y1[i] << "	"; 
+                fout << std::fixed << std::scientific << std::setprecision(5) << y1_pr[i] << "	";
+		fout << std::fixed << std::scientific << std::setprecision(5) << fabsl(y1[i] - y1_pr[i]) << "	";
+               	fout << std::fixed << std::scientific << std::setprecision(5) << y2[i] << "	";
+                fout << std::fixed << std::scientific << std::setprecision(5) << y2_pr[i] << "	";
+                fout << std::fixed << std::scientific << std::setprecision(5) << fabsl(y2[i] - y2_pr[i]);
 		fout << std::endl;		
 	}
 }
@@ -98,7 +101,7 @@ int main(int argc, char* argv[])
 {
 	std::cout.setf(std::ios::fixed);
 	std::cout.precision(8);
-	Matrix<long double, 2, 1> initCondition(5., 2.);
+	Matrix<long double, 2, 1> initCondition(-5*pow(10., 15), 2.*pow(10., 15));
 	Matrix<long double, 2, 2> A;
 	A(0, 0) = -99.;
 	A(0, 1) = 250;
@@ -111,15 +114,18 @@ int main(int argc, char* argv[])
 	preciseSolution(y1_pr, y2_pr, initCondition);
 	int numberOfKnots = 11;
 	long double delta = 100;
-	while (fabsl(delta) > pow(10., -6)) {
-		//std::cout << "numberOfKnots = " << numberOfKnots << " ; ";
+	std::ofstream fout("output_final.txt");
+	fout << "Number of knots:	Delta:" << std::endl;
+	numberOfKnots = 671088641;
+	//while (fabsl(delta) > pow(10., -6)) {
+		fout << numberOfKnots << "		        ";
 		solve(y1, y2, findStep(numberOfKnots), numberOfKnots, A, initCondition);
 		delta = findDelta(y1, y1_pr);
 		if (findDelta(y2, y2_pr) > delta)
 			delta = findDelta(y2, y2_pr);
 		numberOfKnots = (numberOfKnots - 1) * 2 + 1;
-		//std::cout << "delta = " << delta << std::endl;
-	}
+		fout << std::fixed << std::scientific << std::setprecision(5) << delta << std::endl;
+	//}
 	std::cout << "numberOfKnots = " << (numberOfKnots - 1) / 2 + 1 << std::endl;
 	std::cout << "delta = " << delta << std::endl;
 	std::cout << "number solutions" << std::endl;
@@ -129,7 +135,7 @@ int main(int argc, char* argv[])
 	std::cout << "precise solutions" << std::endl;
 	printVector(y1_pr);
 	printVector(y2_pr);
-	outputGenerator(y1, y1_pr, y2, y2_pr);
+	outputGenerator(y1, y1_pr, y2, y2_pr, (numberOfKnots - 1) / 2 + 1);
 	return 0;
 }
 
