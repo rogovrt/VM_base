@@ -164,7 +164,7 @@ void dinRightCoeffs(T& ar, T& br, T& cr, T& dr, T& grid, int beta) {
 }
 
 
-void dinProgonka(int numberOfKnots, std::vector<long double>& grid, std::array<long double, 11>& u) a{
+void dinProgonka(int numberOfKnots, std::vector<long double>& grid, std::array<long double, 11>& u) {
 	int l = (numberOfKnots - 1)/10;
         int alpha; int beta;
         createGrid(numberOfKnots, grid, alpha, beta);
@@ -215,26 +215,57 @@ void dinProgonka(int numberOfKnots, std::vector<long double>& grid, std::array<l
 
 }
 
+void dinSolve(std::array<long double, 11>& u, std::vector<long double>& grid) {
+        int n = 11;
+	int n1 = 21;
+	std::array<long double, 11> u1;
+        dinProgonka(n, grid, u);
+	dinProgonka(n1, grid, u1);
+	fout << "knots	delta\n";
+	fout << n << "	";
+	fout << std::fixed << std::scientific << std::setprecision(4) << findDelta(u, u1) << std::endl;
+        int k = 1;
+        while (fabsl(findDelta(u, u1) > .0001)) {
+        //while (n < 5000) {
+		n = n1;
+		u = u1;
+                n1 = (n1 - 1)*2 + 1;
+                statProgonka(n1, grid, u1);
+		fout << n << "	" << std::scientific << std::setprecision(4) << findDelta(u, u1) << std::endl;
+        }
+	fout << std::endl;
+}
+
+
 int main() {
 	//std::cout.setf(std::ios::fixed);
 	//std::cout.precision(8);
 	std::vector<long double> grid;
 	std::array<long double, 11> u;
 	std::array<long double, 11> u_pr;
+	fout << "STATIC RESULTS\n";
 	statPrecise(u_pr);
 	statSolve(u, grid);
-	std::cout << "number solution" << std::endl;
-	print(u);
+	//std::cout << "number solution" << std::endl;
+	//print(u);
 	long double h = .1;
 	fout << "x	precise sol	numerical sol\n";
 	for (int i = 0; i < 11; ++i) {
 		fout << std::fixed << std::setprecision(2) << i*h << "	";
 		fout << std::scientific << std::setprecision(4) << u_pr[i] << "	" << u[i] << std::endl;
 	}
-	
-	std::cout << "---------------------------------------------" << std::endl;
-	dinProgonka(11, grid, u);
-	print(u);
+	fout << "---------------------------------------------" << std::endl;
+	fout << "\nDYNAMIC RESULTS\n";
+	//std::cout << "---------------------------------------------" << std::endl;
+	//dinProgonka(11, grid, u);
+	dinSolve(u, grid);
+	fout << "x	sol\n";
+	        for (int i = 0; i < 11; ++i) {
+                fout << std::fixed << std::setprecision(2) << i*h << "	";
+                fout << std::scientific << std::setprecision(4) << u[i] << std::endl;
+        }
+	//std::cout << "---------------------------------------------" << std::endl;
+	//print(u);
 
 	return 0;
 }
