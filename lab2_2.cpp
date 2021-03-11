@@ -7,8 +7,8 @@
 #include <iomanip>
 
 long double x0 = 1 / sqrt(2);
-long double u0 = 0;
-long double u1 = 1;
+long double u0 = 0.;
+long double u1 = 1.;
 std::ofstream fout("out.txt");
 long double kl = 1.;
 long double kr = 1.;
@@ -42,7 +42,6 @@ void print(T& v) {
 void createGrid(int numberOfKnots, std::vector<long double>& grid, int& leftBorder, int& rightBorder) {
 	grid.clear();
 	long double h = 1. / (numberOfKnots - 1);
-	//std::cout << h << std::endl;
 	for (int i = 0; i < numberOfKnots; ++i) {
 		if (((i * h) <= x0) && (((i + 1) * h) >= x0)) {
 		       	leftBorder = i;
@@ -50,8 +49,6 @@ void createGrid(int numberOfKnots, std::vector<long double>& grid, int& leftBord
 		}		
 		grid.push_back(i * h);
 	}
-	//std::cout << leftBorder << " ; " << rightBorder << std::endl;
-	
 }
 
 long double findDelta(std::array<long double, 11>& y, const std::array<long double, 11>& y_pr) {
@@ -64,6 +61,10 @@ long double findDelta(std::array<long double, 11>& y, const std::array<long doub
 }
 
 void statPrecise(std::array<long double, 11>& u) {
+	std::cout << ql << " ; " << qr << std::endl;
+	std::cout << kl << " ; " << kr << std::endl;
+	std::cout << fl << " ; " << fr << std::endl;
+	std::cout << x0 << std::endl;
 	long double ll = sqrt(ql/kl);
 	long double lr = sqrt(qr/kr);
 	long double nl = fl/ql;
@@ -87,6 +88,10 @@ void statPrecise(std::array<long double, 11>& u) {
 		else
 			u[i] = C3*exp(lr*x) + C4*exp(-lr*x) + nr;
         }
+	std::cout << "C1 = " << C1 << std::endl;
+	std::cout << "C2 = " << C2 << std::endl;
+	std::cout << "C3 = " << C3 << std::endl;
+        std::cout << "C4 = " << C4 << std::endl;
 
 }
 
@@ -117,7 +122,7 @@ void dinRightCoeffs(T& ar, T& br, T& cr, T& dr, T& grid, int beta) {
         long double h = grid[1] - grid[0];
         for (int i = 0; i < ar.size(); ++i) {
                 ar[i] = k(grid[beta+i+1] + h/2);
-                br[i] = -(k(grid[beta+i+1] + h/2) + k(grid[beta+i+2] - h/2) + q(grid[beta+1])*pow(h, 2.));
+                br[i] = -(k(grid[beta+i+1] + h/2) + k(grid[beta+i+1] - h/2) + q(grid[beta+i+1])*pow(h, 2.));
                 cr[i] = k(grid[beta+i+1] - h/2);
                 dr[i] = -f(grid[beta+i+1]) * pow(h, 2.);
         }
@@ -243,8 +248,8 @@ void dinSolve(std::array<long double, 11>& u, std::vector<long double>& grid) {
 	fout << n << "	";
 	fout << std::fixed << std::scientific << std::setprecision(4) << findDelta(u, u1) << std::endl;
         int k = 1;
-        while (fabsl(findDelta(u, u1) > .0001)) {
-        //while (n < 50000) {
+        //while (fabsl(findDelta(u, u1) > .0001)) {
+        while (n < 500000) {
 		n = n1;
 		u = u1;
                 n1 = (n1 - 1)*2 + 1;
@@ -280,8 +285,6 @@ int main() {
 	fout << "STATIC RESULTS\n";
 	statPrecise(u_pr);
 	statSolve(u, grid);
-	//std::cout << "number solution" << std::endl;
-	//print(u);
 	long double h = .1;
 	fout << "x	precise sol	numerical sol\n";
 	for (int i = 0; i < 11; ++i) {
@@ -290,16 +293,11 @@ int main() {
 	}
 	fout << "---------------------------------------------" << std::endl;
 	fout << "\nDYNAMIC RESULTS\n";
-	//std::cout << "---------------------------------------------" << std::endl;
-	//dinProgonka(11, grid, u);
 	dinSolve(u, grid);
 	fout << "x	sol\n";
 	        for (int i = 0; i < 11; ++i) {
                 fout << std::fixed << std::setprecision(2) << i*h << "	";
                 fout << std::scientific << std::setprecision(4) << u[i] << std::endl;
         }
-	//std::cout << "---------------------------------------------" << std::endl;
-	//print(u);
-
 	return 0;
 }
